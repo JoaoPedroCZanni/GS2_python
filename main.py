@@ -1,230 +1,298 @@
+import os
 import json
 import re
-import oracledb
-import os 
-import os
-os.system('cls' if os.name == 'nt' else 'clear')
 
-def conectar():
-    username = 'rm557591'
-    password = 'fiap24'
-    cs = "oracle.fiap.com.br:1521/orcl"
-    
-    try:
-        # Conectando ao banco de dados
-        conn = oracledb.connect(user=username, password=password, dsn=cs)
-        return conn
-    except oracledb.DatabaseError as e:
-        error, = e.args
-        print("Erro ao conectar ao banco de dados:")
-        print(f"Código do erro: {error.code}")
-        print(f"Mensagem do erro: {error.message}")
-        return None
+# MENSAGENS PADRÃO
+MSG_CADASTRO_SUCESSO = "Cadastro realizado com sucesso!"
+MSG_CADASTRO_USUARIO = "Usuário cadastrado com sucesso!"
+MSG_OPCAO_INVALIDA = "Opção inválida. Por favor, escolha novamente."
+MSG_NENHUM_CADASTRO = "Nenhum cadastro encontrado."
+MSG_PROBLEMA_RELATADO = "Problema relatado com sucesso!"
+MSG_PROBLEMA_REMOVIDO = "Problema removido com sucesso!"
+MSG_EMAIL_INVALIDO = "E-mail inválido! Não é possível realizar esta ação."
+MSG_SENHA_INVALIDA = "A senha precisa ter pelo menos 8 caracteres."
+MSG_PONTOS_INSUFICIENTES = "Você não tem pontos suficientes para resgatar."
 
-# Conectar ao banco
-conexao = conectar()
+# VARIÁVEIS DE ARMAZENAMENTO
+cadastro_pessoal = []
+problemas = {}
+pontos = {}
 
-if conexao:
-    try:
-        # Criando o cursor para executar comandos SQL
-        cursor = conexao.cursor()
+# FUNÇÃO DE LIMPAR A TELA
+def limpar_tela():
+    os.system("cls" if os.name == "nt" else "clear")
 
-        # Comando SQL para criar a tabela
-        sql_criar_tabela = """
-        CREATE TABLE IF NOT EXISTS T_usuarios (
-            cpf VARCHAR2(11) PRIMARY KEY,
-            nome VARCHAR2(100),
-            senha VARCHAR2(100)
-        )
-        """
-        
-        # Executando o comando SQL
-        cursor.execute(sql_criar_tabela)
-        
-        # Confirmando as mudanças no banco de dados (commit)
-        conexao.commit()
-        
-        print("Tabela 'T_usuarios' criada com sucesso!")
-        
-    except oracledb.DatabaseError as e:
-        error, = e.args
-        print("Erro ao executar o comando SQL:")
-        print(f"Código do erro: {error.code}")
-        print(f"Mensagem do erro: {error.message}")
-    
-    finally:
-        # Fechar o cursor e a conexão
-        cursor.close()
-        conexao.close()
-
-# Funções de Validação
+# FUNÇÕES DE VALIDAÇÃO
 def validar_email(email):
-    if re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', email):
-        return True
-    print("Erro: Email inválido.")
-    return False
+    return bool(re.match(r"[^@]+@[^@]+\.[^@]+", email))
 
 def validar_senha(senha):
-    if len(senha) < 8:
-        print("Erro: A senha deve ter no mínimo 8 caracteres.")
-        return False
-    if not re.search(r'[A-Z]', senha):
-        print("Erro: A senha deve conter pelo menos uma letra maiúscula.")
-        return False
-    if not re.search(r'[a-z]', senha):
-        print("Erro: A senha deve conter pelo menos uma letra minúscula.")
-        return False
-    if not re.search(r'\d', senha):
-        print("Erro: A senha deve conter pelo menos um número.")
-        return False
-    return True
+    return len(senha) >= 8
 
-def validar_cpf(cpf):
-    cpf = re.sub(r'\D', '', cpf)
-    if len(cpf) != 11 or not cpf.isdigit():
-        print("Erro: CPF deve ter 11 dígitos.")
-        return False
-    if cpf == cpf[0] * 11:
-        print("Erro: CPF inválido.")
-        return False
-    for i in range(9, 11):
-        soma = sum(int(cpf[j]) * (i + 1 - j) for j in range(i))
-        digito = (soma * 10 % 11) % 10
-        if digito != int(cpf[i]):
-            print("Erro: CPF inválido.")
-            return False
-    return True
+# FUNÇÕES DE GERENCIAMENTO DE CADASTRO PESSOAL
+def adicionar_pessoal(email, senha):
+    if not validar_email(email):
+        print(MSG_EMAIL_INVALIDO)
+        input("\nPressione Enter para voltar ao menu...")
+        return
+    
+    if not validar_senha(senha):
+        print(MSG_SENHA_INVALIDA)
+        input("\nPressione Enter para voltar ao menu...")
+        return
 
-# Função CRUD para Cadastro de Usuários
-def cadastrar_usuario():
-    while True:
-        print("\n--- Cadastro de Usuários ---")
-        print("1. Novo cadastro de usuário")
-        print("2. Listar todos os usuários")
-        print("3. Atualizar usuário")
-        print("4. Excluir usuário")
-        print("5. Voltar")
+    if buscar_pessoal_por_email(email):
+        print("Este e-mail já está cadastrado.")
+        input("\nPressione Enter para voltar ao menu...")
+        return
+    
+    cadastro_pessoal.append({"email": email, "senha": senha})
+    print(MSG_CADASTRO_USUARIO)
+    input("\nPressione Enter para voltar ao menu...")
 
-        opcao = input("Opção: ")
-        
-        if opcao == "1":
-            email = input("Email: ")
-            senha = input("Senha: ")
-            cpf = input("CPF: ")
-            if validar_email(email) and validar_senha(senha) and validar_cpf(cpf):
-                conn = conectar()
-                if conn:
-                    try:
-                        cursor = conn.cursor()
-                        cursor.execute("INSERT INTO usuarios (email, senha, cpf) VALUES (:1, :2, :3)", (email, senha, cpf))
-                        conn.commit()
-                        print("Usuário cadastrado com sucesso!")
-                    except oracledb.DatabaseError as e:
-                        error, = e.args
-                        print("Erro ao cadastrar usuário:", error.message)
-                    finally:
-                        conn.close()
+def listar_pessoal():
+    limpar_tela()
+    if not cadastro_pessoal:
+        print(MSG_NENHUM_CADASTRO)
+    else:
+        for i, pessoal in enumerate(cadastro_pessoal, 1):
+            print(f"{i}. E-mail: {pessoal['email']}")
+    input("\nPressione Enter para voltar ao menu...")
 
-        elif opcao == "2":
-            conn = conectar()
-            if conn:
-                try:
-                    cursor = conn.cursor()
-                    cursor.execute("SELECT * FROM usuarios")
-                    for user in cursor:
-                        print(f"ID: {user[0]}, Email: {user[1]}, CPF: {user[3]}")
-                except oracledb.DatabaseError as e:
-                    error, = e.args
-                    print("Erro ao listar usuários:", error.message)
-                finally:
-                    conn.close()
+def buscar_pessoal_por_email(email):
+    for pessoal in cadastro_pessoal:
+        if pessoal["email"] == email:
+            return pessoal
+    return None
 
-        elif opcao == "3":
-            id = int(input("ID do usuário a atualizar: "))
-            novo_email = input("Novo email (deixe em branco para não alterar): ")
-            nova_senha = input("Nova senha (deixe em branco para não alterar): ")
-            novo_cpf = input("Novo CPF (deixe em branco para não alterar): ")
-            conn = conectar()
-            if conn:
-                try:
-                    cursor = conn.cursor()
-                    if novo_email and validar_email(novo_email):
-                        cursor.execute("UPDATE usuarios SET email = :1 WHERE id = :2", (novo_email, id))
-                    if nova_senha and validar_senha(nova_senha):
-                        cursor.execute("UPDATE usuarios SET senha = :1 WHERE id = :2", (nova_senha, id))
-                    if novo_cpf and validar_cpf(novo_cpf):
-                        cursor.execute("UPDATE usuarios SET cpf = :1 WHERE id = :2", (novo_cpf, id))
-                    conn.commit()
-                    print("Usuário atualizado com sucesso!")
-                except oracledb.DatabaseError as e:
-                    error, = e.args
-                    print("Erro ao atualizar usuário:", error.message)
-                finally:
-                    conn.close()
-                    
-# precisa de ajustes
-        elif opcao == "4":
-            id = int(input("ID do usuário a excluir: "))
-            conn = conectar()
-            if conn:
-                try:
-                    cursor = conn.cursor()
-                    cursor.execute("DELETE FROM usuarios WHERE id = :1", [id])
-                    conn.commit()
-                    print("Usuário excluído com sucesso!")
-                except oracledb.DatabaseError as e:
-                    error, = e.args
-                    print("Erro ao excluir usuário:", error.message)
-                finally:
-                    conn.close()
+def alterar_pessoal(email_antigo, email_novo, senha_nova):
+    pessoal = buscar_pessoal_por_email(email_antigo)
+    if pessoal:
+        pessoal["email"] = email_novo
+        pessoal["senha"] = senha_nova
+        print("Cadastro alterado com sucesso.")
+    else:
+        print("Cadastro não encontrado.")
+    input("\nPressione Enter para voltar ao menu...")
 
-        elif opcao == "5":
-            break
+def remover_pessoal(email, senha):
+    global cadastro_pessoal
+    pessoal_a_remover = [pessoal for pessoal in cadastro_pessoal if pessoal["email"] == email and pessoal["senha"] == senha]
+    if pessoal_a_remover:
+        cadastro_pessoal = [pessoal for pessoal in cadastro_pessoal if not (pessoal["email"] == email and pessoal["senha"] == senha)]
+        print("Cadastro removido com sucesso.")
+    else:
+        print("E-mail ou senha incorretos, ou cadastro não encontrado.")
+    input("\nPressione Enter para voltar ao menu...")
 
-        else:
-            print("Opção inválida. Tente novamente.")
+# FUNÇÕES DE GERENCIAMENTO DE PONTOS
+def atribuir_pontos(email, pontos_a_adicionar):
+    if email in pontos:
+        pontos[email] += pontos_a_adicionar
+    else:
+        pontos[email] = pontos_a_adicionar
+    print(f"Pontos atribuídos com sucesso! {email} agora tem {pontos[email]} pontos.")
+    input("\nPressione Enter para voltar ao menu...")
 
-# Função para Gerenciar Pontos
-def gerenciar_pontos():
-    print("Funcionalidade de Gerenciamento de Pontos em desenvolvimento...")
+def visualizar_pontos(email):
+    if email in pontos:
+        print(f"{email} tem {pontos[email]} pontos.")
+    else:
+        print(f"{email} não tem pontos registrados.")
+    input("\nPressione Enter para voltar ao menu...")
 
-# Função para Relatar Problemas
-def relatar_problema():
-    problema = input("Descreva o problema: ")
-    print("Problema relatado com sucesso.")
+def resgatar_pontos(email, pontos_resgatar):
+    if email in pontos and pontos[email] >= pontos_resgatar:
+        pontos[email] -= pontos_resgatar
+        print(f"{pontos_resgatar} pontos resgatados com sucesso!")
+    else:
+        print(MSG_PONTOS_INSUFICIENTES)
+    input("\nPressione Enter para voltar ao menu...")
 
-# Função para Exportar Dados para JSON
-def exportar_json():
-    dados = {"example": "data"}
-    with open("dados_exportados.json", "w") as arquivo:
-        json.dump(dados, arquivo)
-    print("Dados exportados para JSON com sucesso.")
+# FUNÇÕES DE RELATAR PROBLEMAS
+def relatar_problema(descricao_problema, email):
+    if not validar_email(email):
+        print("E-mail inválido! Não é possível relatar o problema.")
+        input("\nPressione Enter para voltar ao menu...")
+        return
+    
+    problema_id = len(problemas) + 1
+    problemas[problema_id] = descricao_problema
+    print(MSG_PROBLEMA_RELATADO)
+    input("\nPressione Enter para voltar ao menu...")
 
-# Função Principal para Exibir o Menu
+def listar_problemas():
+    limpar_tela()
+    if not problemas:
+        print("Nenhum problema relatado.")
+    else:
+        for problema_id, descricao in problemas.items():
+            print(f"ID: {problema_id} - Descrição: {descricao}")
+    input("\nPressione Enter para voltar ao menu...")
+
+def remover_problema(problema_id):
+    if problema_id in problemas:
+        del problemas[problema_id]
+        print(MSG_PROBLEMA_REMOVIDO)
+    else:
+        print("Problema não encontrado.")
+    input("\nPressione Enter para voltar ao menu...")
+
+# FUNÇÕES DE EXPORTAÇÃO PARA JSON
+def exportar_dados_json():
+    dados = {
+        "cadastro_pessoal": cadastro_pessoal,
+        "problemas": problemas,
+        "pontos": pontos
+    }
+    with open("dados.json", "w") as arquivo_json:
+        json.dump(dados, arquivo_json, indent=4)
+    print("Dados exportados para dados.json com sucesso!")
+    input("\nPressione Enter para voltar ao menu...")
+
+# FUNÇÕES DE ENTRADA
+def adicionar_cadastro_entrada():
+    limpar_tela()
+    print("=== Adicionar Cadastro Pessoal ===")
+    email = input("Digite o e-mail: ")
+    senha = input("Digite a senha: ")
+    adicionar_pessoal(email, senha)
+
+def alterar_cadastro_entrada():
+    limpar_tela()
+    print("=== Alterar Cadastro Pessoal ===")
+    email_antigo = input("Digite o e-mail antigo: ")
+    email_novo = input("Digite o novo e-mail: ")
+    senha_nova = input("Digite a nova senha: ")
+    alterar_pessoal(email_antigo, email_novo, senha_nova)
+
+def remover_cadastro_entrada():
+    limpar_tela()
+    print("=== Remover Cadastro Pessoal ===")
+    email = input("Digite o e-mail: ")
+    senha = input("Digite a senha: ")
+    remover_pessoal(email, senha)
+
+def atribuir_pontos_entrada():
+    limpar_tela()
+    print("=== Atribuir Pontos ===")
+    email = input("Digite o e-mail do usuário: ")
+    pontos = int(input("Digite a quantidade de pontos a atribuir: "))
+    atribuir_pontos(email, pontos)
+
+def visualizar_pontos_entrada():
+    limpar_tela()
+    print("=== Visualizar Pontos ===")
+    email = input("Digite o e-mail do usuário: ")
+    visualizar_pontos(email)
+
+def resgatar_pontos_entrada():
+    limpar_tela()
+    print("=== Resgatar Pontos ===")
+    email = input("Digite o e-mail do usuário: ")
+    pontos_resgatar = int(input("Digite a quantidade de pontos a ser resgatada: "))
+    resgatar_pontos(email, pontos_resgatar)
+
+def relatar_problema_entrada():
+    limpar_tela()
+    print("=== Relatar Problema ===")
+    descricao_problema = input("Digite a descrição do problema: ")
+    email = input("Digite seu e-mail: ")
+    relatar_problema(descricao_problema, email)
+
+def remover_problema_entrada():
+    limpar_tela()
+    print("=== Remover Problema ===")
+    problema_id = int(input("Digite o número do problema a ser removido: "))
+    remover_problema(problema_id)
+
+# MENU PRINCIPAL
 def menu_principal():
     while True:
-        print("\nMenu Principal:")
-        print("1 - Cadastro de Usuários")
-        print("2 - Gerenciar Sistemas de Pontos")
-        print("3 - Relatar Problema ")
-        print("4 - Exportar para JSON")
-        print("5 - Sair")
-
+        limpar_tela()
+        print("=== MENU PRINCIPAL ===")
+        print("1. Gerenciar Cadastro Pessoal")
+        print("2. Gerenciar Pontos")
+        print("3. Relatar Problemas")
+        print("4. Exportar dados para JSON")
+        print("0. Sair")
         opcao = input("Escolha uma opção: ")
-        
         if opcao == "1":
-            cadastrar_usuario()
+            menu_cadastros()
         elif opcao == "2":
-            gerenciar_pontos()
+            menu_pontos()
         elif opcao == "3":
-            relatar_problema()
+            menu_problemas()
         elif opcao == "4":
-            exportar_json()
-        elif opcao == "5":
-            print("Saindo do sistema...")
+            exportar_dados_json()
+        elif opcao == "0":
+            print("Saindo...")
             break
         else:
-            print("Opção inválida. Tente novamente.")
+            print(MSG_OPCAO_INVALIDA)
 
-# Executa o Menu Principal
+# MENU DE CADASTRO
+def menu_cadastros():
+    while True:
+        limpar_tela()
+        print("1. Adicionar Cadastro Pessoal")
+        print("2. Listar Cadastros")
+        print("3. Alterar Cadastro")
+        print("4. Remover Cadastro")
+        print("0. Voltar")
+        opcao = input("Escolha uma opção: ")
+        if opcao == "1":
+            adicionar_cadastro_entrada()
+        elif opcao == "2":
+            listar_pessoal()
+        elif opcao == "3":
+            alterar_cadastro_entrada()
+        elif opcao == "4":
+            remover_cadastro_entrada()
+        elif opcao == "0":
+            break
+        else:
+            print(MSG_OPCAO_INVALIDA)
+
+# MENU DE PONTOS
+def menu_pontos():
+    while True:
+        limpar_tela()
+        print("1. Atribuir Pontos")
+        print("2. Visualizar Pontos")
+        print("3. Resgatar Pontos")
+        print("0. Voltar")
+        opcao = input("Escolha uma opção: ")
+        if opcao == "1":
+            atribuir_pontos_entrada()
+        elif opcao == "2":
+            visualizar_pontos_entrada()
+        elif opcao == "3":
+            resgatar_pontos_entrada()
+        elif opcao == "0":
+            break
+        else:
+            print(MSG_OPCAO_INVALIDA)
+
+# MENU DE PROBLEMAS
+def menu_problemas():
+    while True:
+        limpar_tela()
+        print("1. Relatar Problema")
+        print("2. Listar Problemas")
+        print("3. Remover Problema")
+        print("0. Voltar")
+        opcao = input("Escolha uma opção: ")
+        if opcao == "1":
+            relatar_problema_entrada()
+        elif opcao == "2":
+            listar_problemas()
+        elif opcao == "3":
+            remover_problema_entrada()
+        elif opcao == "0":
+            break
+        else:
+            print(MSG_OPCAO_INVALIDA)
+
+# EXECUÇÃO DO MENU PRINCIPAL
 menu_principal()
