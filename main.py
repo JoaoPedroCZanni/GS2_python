@@ -2,7 +2,7 @@ import os
 import json
 import re
 
-# MENSAGENS PADRÃO
+# MENSAGENS 
 MSG_CADASTRO_SUCESSO = "Cadastro realizado com sucesso!"
 MSG_CADASTRO_USUARIO = "Usuário cadastrado com sucesso!"
 MSG_OPCAO_INVALIDA = "Opção inválida. Por favor, escolha novamente."
@@ -13,43 +13,37 @@ MSG_EMAIL_INVALIDO = "E-mail inválido! Não é possível realizar esta ação."
 MSG_SENHA_INVALIDA = "A senha precisa ter pelo menos 8 caracteres."
 MSG_PONTOS_INSUFICIENTES = "Você não tem pontos suficientes para resgatar."
 
-# VARIÁVEIS DE ARMAZENAMENTO
+# ARMAZENAMENTO
 cadastro_pessoal = []
 problemas = {}
 pontos = {}
 
-# FUNÇÃO DE LIMPAR A TELA
 def limpar_tela():
     os.system("cls" if os.name == "nt" else "clear")
 
-# FUNÇÕES DE VALIDAÇÃO
+# VALIDAÇÃO
 def validar_email(email):
     return bool(re.match(r"[^@]+@[^@]+\.[^@]+", email))
-
 def validar_senha(senha):
     return len(senha) >= 8
 
-# FUNÇÕES DE GERENCIAMENTO DE CADASTRO PESSOAL
+#  CADASTRO PESSOAL
 def adicionar_pessoal(email, senha):
     if not validar_email(email):
         print(MSG_EMAIL_INVALIDO)
         input("\nPressione Enter para voltar ao menu...")
         return
-    
     if not validar_senha(senha):
         print(MSG_SENHA_INVALIDA)
         input("\nPressione Enter para voltar ao menu...")
         return
-
     if buscar_pessoal_por_email(email):
         print("Este e-mail já está cadastrado.")
         input("\nPressione Enter para voltar ao menu...")
         return
-    
     cadastro_pessoal.append({"email": email, "senha": senha})
     print(MSG_CADASTRO_USUARIO)
     input("\nPressione Enter para voltar ao menu...")
-
 def listar_pessoal():
     limpar_tela()
     if not cadastro_pessoal:
@@ -58,13 +52,11 @@ def listar_pessoal():
         for i, pessoal in enumerate(cadastro_pessoal, 1):
             print(f"{i}. E-mail: {pessoal['email']}")
     input("\nPressione Enter para voltar ao menu...")
-
 def buscar_pessoal_por_email(email):
     for pessoal in cadastro_pessoal:
         if pessoal["email"] == email:
             return pessoal
     return None
-
 def alterar_pessoal(email_antigo, email_novo, senha_nova):
     pessoal = buscar_pessoal_por_email(email_antigo)
     if pessoal:
@@ -74,7 +66,6 @@ def alterar_pessoal(email_antigo, email_novo, senha_nova):
     else:
         print("Cadastro não encontrado.")
     input("\nPressione Enter para voltar ao menu...")
-
 def remover_pessoal(email, senha):
     global cadastro_pessoal
     pessoal_a_remover = [pessoal for pessoal in cadastro_pessoal if pessoal["email"] == email and pessoal["senha"] == senha]
@@ -85,7 +76,8 @@ def remover_pessoal(email, senha):
         print("E-mail ou senha incorretos, ou cadastro não encontrado.")
     input("\nPressione Enter para voltar ao menu...")
 
-# FUNÇÕES DE GERENCIAMENTO DE PONTOS
+
+# GERENCIAMENTO DE PONTOS
 def atribuir_pontos(email, pontos_a_adicionar):
     if email in pontos:
         pontos[email] += pontos_a_adicionar
@@ -93,14 +85,12 @@ def atribuir_pontos(email, pontos_a_adicionar):
         pontos[email] = pontos_a_adicionar
     print(f"Pontos atribuídos com sucesso! {email} agora tem {pontos[email]} pontos.")
     input("\nPressione Enter para voltar ao menu...")
-
 def visualizar_pontos(email):
     if email in pontos:
         print(f"{email} tem {pontos[email]} pontos.")
     else:
         print(f"{email} não tem pontos registrados.")
     input("\nPressione Enter para voltar ao menu...")
-
 def resgatar_pontos(email, pontos_resgatar):
     if email in pontos and pontos[email] >= pontos_resgatar:
         pontos[email] -= pontos_resgatar
@@ -109,18 +99,17 @@ def resgatar_pontos(email, pontos_resgatar):
         print(MSG_PONTOS_INSUFICIENTES)
     input("\nPressione Enter para voltar ao menu...")
 
-# FUNÇÕES DE RELATAR PROBLEMAS
+
+# RELATAR PROBLEMAS
 def relatar_problema(descricao_problema, email):
     if not validar_email(email):
         print("E-mail inválido! Não é possível relatar o problema.")
         input("\nPressione Enter para voltar ao menu...")
-        return
-    
+        return  
     problema_id = len(problemas) + 1
     problemas[problema_id] = descricao_problema
     print(MSG_PROBLEMA_RELATADO)
     input("\nPressione Enter para voltar ao menu...")
-
 def listar_problemas():
     limpar_tela()
     if not problemas:
@@ -129,7 +118,6 @@ def listar_problemas():
         for problema_id, descricao in problemas.items():
             print(f"ID: {problema_id} - Descrição: {descricao}")
     input("\nPressione Enter para voltar ao menu...")
-
 def remover_problema(problema_id):
     if problema_id in problemas:
         del problemas[problema_id]
@@ -138,7 +126,8 @@ def remover_problema(problema_id):
         print("Problema não encontrado.")
     input("\nPressione Enter para voltar ao menu...")
 
-# FUNÇÕES DE EXPORTAÇÃO PARA JSON
+
+# JSON
 def exportar_dados_json():
     dados = {
         "cadastro_pessoal": cadastro_pessoal,
@@ -157,7 +146,6 @@ def adicionar_cadastro_entrada():
     email = input("Digite o e-mail: ")
     senha = input("Digite a senha: ")
     adicionar_pessoal(email, senha)
-
 def alterar_cadastro_entrada():
     limpar_tela()
     print("=== Alterar Cadastro Pessoal ===")
@@ -165,7 +153,6 @@ def alterar_cadastro_entrada():
     email_novo = input("Digite o novo e-mail: ")
     senha_nova = input("Digite a nova senha: ")
     alterar_pessoal(email_antigo, email_novo, senha_nova)
-
 def remover_cadastro_entrada():
     limpar_tela()
     print("=== Remover Cadastro Pessoal ===")
@@ -173,33 +160,76 @@ def remover_cadastro_entrada():
     senha = input("Digite a senha: ")
     remover_pessoal(email, senha)
 
+# Cadastro de Pontos
+acoes_disponiveis = {
+    "plantou uma arvore": 10,
+    "coletou lixo": 5,
+    "reduziu consumo de plástico": 8,
+    "participou de um evento sustentável": 12,
+}
 def atribuir_pontos_entrada():
     limpar_tela()
     print("=== Atribuir Pontos ===")
     email = input("Digite o e-mail do usuário: ")
-    pontos = int(input("Digite a quantidade de pontos a atribuir: "))
-    atribuir_pontos(email, pontos)
+    if not buscar_pessoal_por_email(email):
+        print("Usuário não encontrado.")
+        input("\nPressione Enter para voltar ao menu...")
+        return
+    print("\nEscolha uma das ações abaixo:")
+    for i, (acao, pontos) in enumerate(acoes_disponiveis.items(), 1):
+        print(f"{i}. {acao.capitalize()} - {pontos} pontos")
+    while True:
+        try:
+            escolha = int(input("\nDigite o número da ação realizada pelo usuário: "))
+            if 1 <= escolha <= len(acoes_disponiveis):
+                acao_selecionada = list(acoes_disponiveis.keys())[escolha - 1]
+                pontos = acoes_disponiveis[acao_selecionada]
+                break
+            else:
+                print("Erro: Escolha inválida. Digite um número da lista.")
+        except ValueError:
+            print("Erro: Entrada inválida. Digite um número válido.")
+    atribuir_pontos(email, pontos, acao_selecionada)
+def atribuir_pontos(email, pontos, acao):
+    usuario = buscar_pessoal_por_email(email)
+    if usuario:
+        if "pontos" not in usuario:
+            usuario["pontos"] = 0
+        usuario["pontos"] += pontos
+        if "acoes" not in usuario:
+            usuario["acoes"] = []
+        usuario["acoes"].append({"acao": acao, "pontos": pontos})
+        print(f"Pontos atribuídos com sucesso! {pontos} pontos para a ação: {acao.capitalize()}")
+    else:
+        print("Usuário não encontrado.")
+    input("\nPressione Enter para voltar ao menu...")
+def listar_acoes_usuario(email):
+    usuario = buscar_pessoal_por_email(email)
+    if usuario and "acoes" in usuario:
+        print(f"Ações de {email}:")
+        for i, acao in enumerate(usuario["acoes"], 1):
+            print(f"{i}. Ação: {acao['acao'].capitalize()} - Pontos: {acao['pontos']}")
+    else:
+        print("Nenhuma ação registrada ou usuário não encontrado.")
+    input("\nPressione Enter para voltar ao menu...")
 
 def visualizar_pontos_entrada():
     limpar_tela()
     print("=== Visualizar Pontos ===")
     email = input("Digite o e-mail do usuário: ")
     visualizar_pontos(email)
-
 def resgatar_pontos_entrada():
     limpar_tela()
     print("=== Resgatar Pontos ===")
     email = input("Digite o e-mail do usuário: ")
     pontos_resgatar = int(input("Digite a quantidade de pontos a ser resgatada: "))
     resgatar_pontos(email, pontos_resgatar)
-
 def relatar_problema_entrada():
     limpar_tela()
     print("=== Relatar Problema ===")
     descricao_problema = input("Digite a descrição do problema: ")
     email = input("Digite seu e-mail: ")
     relatar_problema(descricao_problema, email)
-
 def remover_problema_entrada():
     limpar_tela()
     print("=== Remover Problema ===")
