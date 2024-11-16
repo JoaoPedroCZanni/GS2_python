@@ -7,9 +7,11 @@ import oracledb
 
 # Conexão ao Banco de Dados
 
+
+
+# Função para conectar ao banco de dados
 def conectar_db():
     try:
-        # Conectar ao banco de dados Oracle
         conn = oracledb.connect(
             user="", 
             password="", 
@@ -19,48 +21,9 @@ def conectar_db():
     except oracledb.Error as e:
         print(f"Erro ao conectar ao banco de dados: {e}")
         return None
+    
 
-def criar_tabelas():
-    # Defina o comando SQL para criar as tabelas
-    create_usuarios_table = """
-    CREATE TABLE T_USER (
-        id NUMBER PRIMARY KEY,
-        email VARCHAR2(255) UNIQUE,
-        senha VARCHAR2(255),
-        cpf VARCHAR2(11)
-    );
-    """
-
-    create_pontos_table = """
-    CREATE TABLE T_PONTOS (
-        id NUMBER PRIMARY KEY,
-        usuario_id NUMBER,
-        pontos NUMBER,
-        FOREIGN KEY (usuario_id) REFERENCES T_user(id)
-    );
-    """
-
-    # Conectar ao banco de dados
-    conn = conectar_db()
-    if conn:
-        cursor = conn.cursor()
-        try:
-            # Criar as tabelas no banco de dados
-            cursor.execute(create_usuarios_table)
-            cursor.execute(create_pontos_table)
-            conn.commit()
-            print("Tabelas 'T_USER' e 'T_PONTOS' criadas com sucesso.")
-        except oracledb.Error as e:
-            print(f"Erro ao criar as tabelas: {e}")
-        finally:
-            cursor.close()
-            conn.close()
-
-# Chama a função para criar as tabelas
-criar_tabelas()
-
-# Adiciona uma pausa para ver as mensagens
-input("Pressione Enter para sair...")
+# Função para criar tabelas no banco de dados
 
 
 # MENSAGENS 
@@ -111,51 +74,147 @@ def adicionar_pessoal(email, senha, cpf):
         print("Este e-mail já está cadastrado.")
         input("\nPressione Enter para voltar ao menu...")
         return
-    # Adicionando o CPF ao cadastro
-    cadastro_pessoal.append({"email": email, "senha": senha, "cpf": cpf})
-    print(MSG_CADASTRO_USUARIO)
+
+    # Conectando ao banco de dados
+    conn = conectar_db()
+    if conn:
+        cursor = conn.cursor()
+        try:
+            # Inserindo o novo cadastro no banco de dados
+            insert_query = """
+            INSERT INTO T_USER (email, senha, cpf) 
+            VALUES (:email, :senha, :cpf)
+            """
+            cursor.execute(insert_query, {'email': email, 'senha': senha, 'cpf': cpf})
+            conn.commit()  # Confirmar a transação
+            print(MSG_CADASTRO_USUARIO)
+        except oracledb.Error as e:
+            print(f"Erro ao adicionar o usuário ao banco de dados: {e}")
+        finally:
+            cursor.close()
+            conn.close()
     input("\nPressione Enter para voltar ao menu...")
+
 def listar_pessoal():
     limpar_tela()
-    if not cadastro_pessoal:
-        print(MSG_NENHUM_CADASTRO)
-    else:
-        for i, pessoal in enumerate(cadastro_pessoal, 1):
-            print(f"{i}. E-mail: {pessoal['email']}")
+    conn = conectar_db()
+    if conn:
+        cursor = conn.cursor()
+        try:
+            cursor.execute("SELECT email FROM T_USER")
+            usuarios = cursor.fetchall()
+            if not usuarios:
+                print(MSG_NENHUM_CADASTRO)
+            else:
+                for i, usuario in enumerate(usuarios, 1):
+                    print(f"{i}. E-mail: {usuario[0]}")
+        except oracledb.Error as e:
+            print(f"Erro ao listar os usuários: {e}")
+        finally:
+            cursor.close()
+            conn.close()
     input("\nPressione Enter para voltar ao menu...")
+
 def buscar_pessoal_por_email(email):
-    for pessoal in cadastro_pessoal:
-        if pessoal["email"] == email:
-            return pessoal
+    conn = conectar_db()
+    if conn:
+        cursor = conn.cursor()
+        try:
+            # Consultar o banco de dados
+            select_query = "SELECT * FROM T_USER WHERE email = :email"
+            cursor.execute(select_query, {'email': email})
+            user = cursor.fetchone()
+            if user:
+                return {"email": user[1], "senha": user[2], "cpf": user[3]}  # Adaptar conforme sua tabela
+            else:
+                return None
+        except oracledb.Error as e:
+            print(f"Erro ao buscar o usuário no banco de dados: {e}")
+            return None
+        finally:
+            cursor.close()
+            conn.close()
     return None
+
+    # Verifica se o cadastro antigo existe
 def alterar_pessoal(email_antigo, email_novo, senha_nova):
     pessoal = buscar_pessoal_por_email(email_antigo)
     if pessoal:
-        pessoal["email"] = email_novo
-        pessoal["senha"] = senha_nova
-        print("Cadastro alterado com sucesso.")
+        # Conectando ao banco de dados
+        conn = conectar_db()
+        if conn:
+            cursor = conn.cursor()
+            try:
+                # Atualiza os dados no banco
+                update_query = """
+                UPDATE T_USER 
+                SET email = :email_novo, senha = :senha_nova
+                WHERE email = :email_antigo
+                """
+                cursor.execute(update_query, {'email_novo': email_novo, 'senha_nova': senha_nova, 'email_antigo': email_antigo})
+                conn.commit()  # Confirmar a transação
+                print("Cadastro alterado com sucesso.")
+            except oracledb.Error as e:
+                print(f"Erro ao alterar o cadastro no banco de dados: {e}")
+            finally:
+                cursor.close()
+                conn.close()
     else:
         print("Cadastro não encontrado.")
     input("\nPressione Enter para voltar ao menu...")
+
 def remover_pessoal(email, senha):
-    global cadastro_pessoal
-    pessoal_a_remover = [pessoal for pessoal in cadastro_pessoal if pessoal["email"] == email and pessoal["senha"] == senha]
-    if pessoal_a_remover:
-        cadastro_pessoal = [pessoal for pessoal in cadastro_pessoal if not (pessoal["email"] == email and pessoal["senha"] == senha)]
-        print("Cadastro removido com sucesso.")
-    else:
-        print("E-mail ou senha incorretos, ou cadastro não encontrado.")
+    # Conectando ao banco de dados
+    conn = conectar_db()
+    if conn:
+        cursor = conn.cursor()
+        try:
+            # Remover o usuário do banco de dados
+            delete_query = """
+            DELETE FROM T_USER WHERE email = :email AND senha = :senha
+            """
+            cursor.execute(delete_query, {'email': email, 'senha': senha})
+            conn.commit()  # Confirmar a transação
+            print("Cadastro removido com sucesso.")
+        except oracledb.Error as e:
+            print(f"Erro ao remover o usuário do banco de dados: {e}")
+        finally:
+            cursor.close()
+            conn.close()
     input("\nPressione Enter para voltar ao menu...")
+
+
 
 
 # GERENCIAMENTO DE PONTOS
 def atribuir_pontos(email, pontos_a_adicionar):
-    if email in pontos:
-        pontos[email] += pontos_a_adicionar
-    else:
-        pontos[email] = pontos_a_adicionar
-    print(f"Pontos atribuídos com sucesso! {email} agora tem {pontos[email]} pontos.")
+    conn = conectar_db()
+    if conn:
+        cursor = conn.cursor()
+        try:
+            cursor.execute("""
+                SELECT pontos FROM T_PONTOS WHERE usuario_id = (SELECT id FROM T_USER WHERE email = :email)
+            """, {'email': email})
+            resultado = cursor.fetchone()
+            if resultado:
+                pontos_atualizados = resultado[0] + pontos_a_adicionar
+                cursor.execute("""
+                    UPDATE T_PONTOS SET pontos = :pontos WHERE usuario_id = (SELECT id FROM T_USER WHERE email = :email)
+                """, {'pontos': pontos_atualizados, 'email': email})
+            else:
+                cursor.execute("""
+                    INSERT INTO T_PONTOS (usuario_id, pontos) 
+                    VALUES ((SELECT id FROM T_USER WHERE email = :email), :pontos)
+                """, {'email': email, 'pontos': pontos_a_adicionar})
+            conn.commit()
+            print(f"Pontos atribuídos com sucesso! {email} agora tem {pontos_a_adicionar} pontos.")
+        except oracledb.Error as e:
+            print(f"Erro ao atribuir pontos: {e}")
+        finally:
+            cursor.close()
+            conn.close()
     input("\nPressione Enter para voltar ao menu...")
+
 def visualizar_pontos(email):
     if email in pontos:
         print(f"{email} tem {pontos[email]} pontos.")
@@ -325,7 +384,7 @@ def relatar_problema_entrada():
     descricao_problema = input("Digite a descrição da Avaliação: ")
     email = input("Digite seu e-mail: ")
     relatar_problema(descricao_problema, email)
-
+    
 def remover_problema_entrada():
     limpar_tela()
     print("=== Remover Avaliação ===")
