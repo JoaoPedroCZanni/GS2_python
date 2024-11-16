@@ -1,6 +1,4 @@
-# -- RM: 554635 - Lucas Lerri de Almeida - Turma: 1TDSPI - Professor: Edson de Oliveira 
-# -- RM: 557591 - Joao Pedro C. Zanni - Turma: 1TDSPI - Professor: Edson de Oliveira 
-# -- RM: 556459 - Rafael Bompadre Lima - Turma: 1TDSPH - Professor: 
+
 
 import os
 import json
@@ -13,9 +11,9 @@ def conectar_db():
     try:
         # Conectar ao banco de dados Oracle
         conn = oracledb.connect(
-            user="rm557591", 
-            password="fiap24", 
-            dsn="oracle.fiap.com.br:1521/ORCL"
+            user="", 
+            password="", 
+            dsn=""
         )
         return conn
     except oracledb.Error as e:
