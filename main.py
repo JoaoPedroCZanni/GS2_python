@@ -13,9 +13,9 @@ def conectar_db():
     try:
         # Conectar ao banco de dados Oracle
         conn = oracledb.connect(
-            user="rm557591", 
-            password="fiap24", 
-            dsn="oracle.fiap.com.br:1521/ORCL"
+            user="", 
+            password="", 
+            dsn=""
         )
         return conn
     except oracledb.Error as e:
@@ -70,8 +70,8 @@ MSG_CADASTRO_SUCESSO = "Cadastro realizado com sucesso!"
 MSG_CADASTRO_USUARIO = "Usuário cadastrado com sucesso!"
 MSG_OPCAO_INVALIDA = "Opção inválida. Por favor, escolha novamente."
 MSG_NENHUM_CADASTRO = "Nenhum cadastro encontrado."
-MSG_PROBLEMA_RELATADO = "Problema relatado com sucesso!"
-MSG_PROBLEMA_REMOVIDO = "Problema removido com sucesso!"
+MSG_PROBLEMA_RELATADO = "Avaliação relatada com sucesso!"
+MSG_PROBLEMA_REMOVIDO = "Avaliação removida com sucesso!"
 MSG_EMAIL_INVALIDO = "E-mail inválido! Não é possível realizar esta ação."
 MSG_SENHA_INVALIDA = "A senha precisa ter pelo menos 8 caracteres."
 MSG_PONTOS_INSUFICIENTES = "Você não tem pontos suficientes para resgatar."
@@ -176,7 +176,7 @@ def resgatar_pontos(email, pontos_resgatar):
 # RELATAR PROBLEMAS
 def relatar_problema(descricao_problema, email):
     if not validar_email(email):
-        print("E-mail inválido! Não é possível relatar o problema.")
+        print("E-mail inválido! Não é possível relatar o avaliação.")
         input("\nPressione Enter para voltar ao menu...")
         return  
     problema_id = len(problemas) + 1
@@ -186,7 +186,7 @@ def relatar_problema(descricao_problema, email):
 def listar_problemas():
     limpar_tela()
     if not problemas:
-        print("Nenhum problema relatado.")
+        print("Nenhuma avaliação relatada.")
     else:
         for problema_id, descricao in problemas.items():
             print(f"ID: {problema_id} - Descrição: {descricao}")
@@ -196,7 +196,7 @@ def remover_problema(problema_id):
         del problemas[problema_id]
         print(MSG_PROBLEMA_REMOVIDO)
     else:
-        print("Problema não encontrado.")
+        print("Avaliação não encontrada.")
     input("\nPressione Enter para voltar ao menu...")
 
 
@@ -323,16 +323,26 @@ def resgatar_pontos_entrada():
     resgatar_pontos(email, pontos_resgatar)
 def relatar_problema_entrada():
     limpar_tela()
-    print("=== Relatar Problema ===")
-    descricao_problema = input("Digite a descrição do problema: ")
+    print("=== Avaliar Sistema ===")
+    descricao_problema = input("Digite a descrição da Avaliação: ")
     email = input("Digite seu e-mail: ")
     relatar_problema(descricao_problema, email)
+
 def remover_problema_entrada():
     limpar_tela()
-    print("=== Remover Problema ===")
-    problema_id = int(input("Digite o número do problema a ser removido: "))
+    print("=== Remover Avaliação ===")
+    
+    while True:
+        try:
+            problema_id = int(input("Digite o número da avaliação a ser removida: "))
+            if problema_id > 0:
+                break
+            else:
+                print("Por favor, insira um número maior que zero.")
+        except ValueError:
+            print("Por favor, insira um número válido.")
+    
     remover_problema(problema_id)
-
 # MENU PRINCIPAL
 def menu_principal():
     while True:
@@ -340,7 +350,7 @@ def menu_principal():
         print("=== MENU PRINCIPAL ===")
         print("1. Gerenciar Cadastro Pessoal")
         print("2. Gerenciar Pontos")
-        print("3. Relatar Problemas")
+        print("3. Avaliar Sistema")
         print("4. Exportar dados para JSON")
         print("0. Sair")
         opcao = input("Escolha uma opção: ")
@@ -408,9 +418,9 @@ def menu_pontos():
 def menu_problemas():
     while True:
         limpar_tela()
-        print("1. Relatar Problema")
-        print("2. Listar Problemas")
-        print("3. Remover Problema")
+        print("1. Nova Avaliação ")
+        print("2. Listar Avaliações ")
+        print("3. Remover Avaliação")
         print("0. Voltar")
         opcao = input("Escolha uma opção: ")
         if opcao == "1":
