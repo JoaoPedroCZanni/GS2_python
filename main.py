@@ -118,6 +118,7 @@ def listar_pessoal():
     input("\nPressione Enter para voltar ao menu...")
 
 def buscar_pessoal_por_email(email):
+    limpar_tela()
     conn = conectar_db()
     if conn:
         cursor = conn.cursor()
@@ -138,6 +139,7 @@ def buscar_pessoal_por_email(email):
     return None
 
 def alterar_pessoal(email_antigo, email_novo, senha_nova):
+    limpar_tela()
     pessoal = buscar_pessoal_por_email(email_antigo)
     if pessoal:
         conn = conectar_db()
@@ -162,21 +164,48 @@ def alterar_pessoal(email_antigo, email_novo, senha_nova):
     input("\nPressione Enter para voltar ao menu...")
 
 def remover_pessoal(email, senha):
+    limpar_tela()
+    if not validar_email(email):
+        print("E-mail inválido! O formato correto é exemplo@dominio.com.")
+        input("\nPressione enter para voltar ao menu....")
+        return
+    if not validar_senha(senha):
+        print("Senha inválida! A senha deve ter pelo menos 8 caracteres.")
+        input("\nPressione enter para voltar ao menu....")
+        return
     conn = conectar_db()
     if conn:
         cursor = conn.cursor()
         try:
+            # Verificar se o e-mail existe no banco de dados
+            select_query = "SELECT * FROM T_USER WHERE email = :email"
+            cursor.execute(select_query, {'email': email})
+            user = cursor.fetchone()
+
+            if not user:
+                print("E-mail não encontrado no sistema.")
+                input("\nPressione Enter para voltar....")
+                return
+
+            # Verificar se a senha informada corresponde à senha do usuário encontrado
+            if user[1] != senha:  # Supondo que a senha esteja na segunda coluna (índice 1)
+                print("Senha incorreta!")
+                return
+
+            # Deletando o cadastro
             delete_query = """
             DELETE FROM T_USER WHERE email = :email AND senha = :senha
             """
             cursor.execute(delete_query, {'email': email, 'senha': senha})
-            conn.commit() 
+            conn.commit()
             print("Cadastro removido com sucesso.")
+
         except oracledb.Error as e:
             print(f"Erro ao remover o usuário do banco de dados: {e}")
         finally:
             cursor.close()
             conn.close()
+
     input("\nPressione Enter para voltar ao menu...")
 
 
