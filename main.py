@@ -1,3 +1,6 @@
+# -- RM: 554635 - Lucas Lerri de Almeida - Turma: 1TDSPI - Professor: Edson de Oliveira
+# -- RM: 557591 - João Pedro C. Zanni - Turma: 1TDSPI - Professor: Edson de Oliveira
+# -- RM: 556459 - Rafael Bompadre Lima - Turma: 1TDSPH - Professor: Fernando Luiz de Almeida
 
 
 import os
@@ -5,26 +8,20 @@ import json
 import re
 import oracledb
 
-# Conexão ao Banco de Dados
 
-
-
-# Função para conectar ao banco de dados
+# Conexão com o BD 
 def conectar_db():
     try:
         conn = oracledb.connect(
-            user="", 
-            password="", 
-            dsn=""
+            user="rm557591", 
+            password="fiap24", 
+            dsn="oracle.fiap.com.br:1521/ORCL"
         )
         return conn
     except oracledb.Error as e:
         print(f"Erro ao conectar ao banco de dados: {e}")
         return None
     
-
-# Função para criar tabelas no banco de dados
-
 
 # MENSAGENS 
 MSG_CADASTRO_SUCESSO = "Cadastro realizado com sucesso!"
@@ -46,17 +43,22 @@ def limpar_tela():
     os.system("cls" if os.name == "nt" else "clear")
 
 # VALIDAÇÃO
+
 def validar_email(email):
-    return bool(re.match(r"[^@]+@[^@]+\.[^@]+", email))
+    # Valida formato padrão de email
+    padrao = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    return bool(re.match(padrao, email))
 
 def validar_senha(senha):
-    return len(senha) >= 8
+    # Mínimo 8 caracteres, pelo menos uma letra maiúscula, uma minúscula, um número e um caractere especial
+    padrao = r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$'
+    return bool(re.match(padrao, senha))
 
-#  CADASTRO PESSOAL
 def validar_cpf(cpf):
-    # Validação simples de CPF: 11 dígitos numéricos
+    # Verifica se o CPF tem 11 dígitos numéricos
     return cpf.isdigit() and len(cpf) == 11
 
+# Validações
 def adicionar_pessoal(email, senha, cpf):
     if not validar_email(email):
         print(MSG_EMAIL_INVALIDO)
@@ -75,18 +77,18 @@ def adicionar_pessoal(email, senha, cpf):
         input("\nPressione Enter para voltar ao menu...")
         return
 
-    # Conectando ao banco de dados
+
+# Conexão com o CRUD do Gerenciamento de Cadastro Pessoal
     conn = conectar_db()
     if conn:
         cursor = conn.cursor()
         try:
-            # Inserindo o novo cadastro no banco de dados
             insert_query = """
             INSERT INTO T_USER (email, senha, cpf) 
             VALUES (:email, :senha, :cpf)
             """
             cursor.execute(insert_query, {'email': email, 'senha': senha, 'cpf': cpf})
-            conn.commit()  # Confirmar a transação
+            conn.commit()  
             print(MSG_CADASTRO_USUARIO)
         except oracledb.Error as e:
             print(f"Erro ao adicionar o usuário ao banco de dados: {e}")
@@ -120,12 +122,11 @@ def buscar_pessoal_por_email(email):
     if conn:
         cursor = conn.cursor()
         try:
-            # Consultar o banco de dados
             select_query = "SELECT * FROM T_USER WHERE email = :email"
             cursor.execute(select_query, {'email': email})
             user = cursor.fetchone()
             if user:
-                return {"email": user[1], "senha": user[2], "cpf": user[3]}  # Adaptar conforme sua tabela
+                return {"email": user[1], "senha": user[2], "cpf": user[3]} 
             else:
                 return None
         except oracledb.Error as e:
@@ -136,23 +137,20 @@ def buscar_pessoal_por_email(email):
             conn.close()
     return None
 
-    # Verifica se o cadastro antigo existe
 def alterar_pessoal(email_antigo, email_novo, senha_nova):
     pessoal = buscar_pessoal_por_email(email_antigo)
     if pessoal:
-        # Conectando ao banco de dados
         conn = conectar_db()
         if conn:
             cursor = conn.cursor()
             try:
-                # Atualiza os dados no banco
                 update_query = """
                 UPDATE T_USER 
                 SET email = :email_novo, senha = :senha_nova
                 WHERE email = :email_antigo
                 """
                 cursor.execute(update_query, {'email_novo': email_novo, 'senha_nova': senha_nova, 'email_antigo': email_antigo})
-                conn.commit()  # Confirmar a transação
+                conn.commit() 
                 print("Cadastro alterado com sucesso.")
             except oracledb.Error as e:
                 print(f"Erro ao alterar o cadastro no banco de dados: {e}")
@@ -164,17 +162,15 @@ def alterar_pessoal(email_antigo, email_novo, senha_nova):
     input("\nPressione Enter para voltar ao menu...")
 
 def remover_pessoal(email, senha):
-    # Conectando ao banco de dados
     conn = conectar_db()
     if conn:
         cursor = conn.cursor()
         try:
-            # Remover o usuário do banco de dados
             delete_query = """
             DELETE FROM T_USER WHERE email = :email AND senha = :senha
             """
             cursor.execute(delete_query, {'email': email, 'senha': senha})
-            conn.commit()  # Confirmar a transação
+            conn.commit() 
             print("Cadastro removido com sucesso.")
         except oracledb.Error as e:
             print(f"Erro ao remover o usuário do banco de dados: {e}")
@@ -182,8 +178,6 @@ def remover_pessoal(email, senha):
             cursor.close()
             conn.close()
     input("\nPressione Enter para voltar ao menu...")
-
-
 
 
 # GERENCIAMENTO DE PONTOS
@@ -214,6 +208,7 @@ def atribuir_pontos(email, pontos_a_adicionar):
             cursor.close()
             conn.close()
     input("\nPressione Enter para voltar ao menu...")
+
 
 def visualizar_pontos(email):
     if email in pontos:
@@ -269,6 +264,7 @@ def exportar_dados_json():
     print("Dados exportados para dados.json com sucesso!")
     input("\nPressione Enter para voltar ao menu...")
 
+
 # FUNÇÕES DE ENTRADA
 def adicionar_cadastro_entrada():
     limpar_tela()
@@ -290,6 +286,7 @@ def remover_cadastro_entrada():
     email = input("Digite o e-mail: ")
     senha = input("Digite a senha: ")
     remover_pessoal(email, senha)
+
 
 # Cadastro de Pontos
 acoes_disponiveis = {
@@ -320,8 +317,6 @@ def atribuir_pontos_entrada():
                 print("Erro: Escolha inválida. Digite um número da lista.")
         except ValueError:
             print("Erro: Entrada inválida. Digite um número válido.")
-    
-    # Chama a função para atribuir os pontos ao usuário
     atribuir_pontos(email, pontos_a_adicionar, acao_selecionada)
 
 def atribuir_pontos(email, pontos_a_adicionar, acao_selecionada):
@@ -329,11 +324,11 @@ def atribuir_pontos(email, pontos_a_adicionar, acao_selecionada):
     if usuario:
         if "pontos" not in usuario:
             usuario["pontos"] = 0
-        usuario["pontos"] += pontos_a_adicionar  # Soma os pontos
+        usuario["pontos"] += pontos_a_adicionar  
         if "acoes" not in usuario:
             usuario["acoes"] = []
-        usuario["acoes"].append({"acao": acao_selecionada, "pontos": pontos_a_adicionar})  # Adiciona a ação
-        pontos[email] = usuario["pontos"]  # Garante que os pontos sejam armazenados no dicionário
+        usuario["acoes"].append({"acao": acao_selecionada, "pontos": pontos_a_adicionar}) 
+        pontos[email] = usuario["pontos"]  
         print(f"Pontos atribuídos com sucesso! {pontos_a_adicionar} pontos para a ação: {acao_selecionada.capitalize()}")
     else:
         print("Usuário não encontrado.")
@@ -361,6 +356,7 @@ def visualizar_pontos_entrada():
     print("=== Visualizar Pontos ===")
     email = input("Digite o e-mail do usuário: ")
     visualizar_pontos(email)
+
 def resgatar_pontos_entrada():
     limpar_tela()
     print("=== Resgatar Pontos ===")
@@ -375,9 +371,8 @@ def resgatar_pontos_entrada():
                 break
         except ValueError:
             print("Entrada inválida. Por favor, insira um número válido.")
-
-    # Aqui você chama a função de resgate, por exemplo:
     resgatar_pontos(email, pontos_resgatar)
+
 def relatar_problema_entrada():
     limpar_tela()
     print("=== Avaliar Sistema ===")
@@ -398,8 +393,8 @@ def remover_problema_entrada():
                 print("Por favor, insira um número maior que zero.")
         except ValueError:
             print("Por favor, insira um número válido.")
-    
     remover_problema(problema_id)
+
 # MENU PRINCIPAL
 def menu_principal():
     while True:
@@ -426,6 +421,7 @@ def menu_principal():
             print(MSG_OPCAO_INVALIDA)
             input("\nPressione Enter....")
 
+
 # MENU DE CADASTRO
 def menu_cadastros():
     while True:
@@ -450,6 +446,7 @@ def menu_cadastros():
             print(MSG_OPCAO_INVALIDA)
             input("\nPressione o Enter...")
 
+
 # MENU DE PONTOS
 def menu_pontos():
     while True:
@@ -471,6 +468,7 @@ def menu_pontos():
             print(MSG_OPCAO_INVALIDA)
             input("\nPressione Enter...")
 
+
 # MENU DE PROBLEMAS
 def menu_problemas():
     while True:
@@ -485,7 +483,7 @@ def menu_problemas():
         elif opcao == "2":
             listar_problemas()
         elif opcao == "3":
-            remover_problema_entrada()
+            remover_problema_entrada()  
         elif opcao == "0":
             break
         else:
