@@ -2,14 +2,14 @@
 # -- RM: 557591 - João Pedro C. Zanni - Turma: 1TDSPI - Professor: Edson de Oliveira
 # -- RM: 556459 - Rafael Bompadre Lima - Turma: 1TDSPH - Professor: Fernando Luiz de Almeida
 
-
+# BIBLIOTECAS
 import os
 import json
 import re
 import oracledb
 
 
-# Conexão com o BD 
+# CONEXÃO COM O DB
 def conectar_db():
     try:
         conn = oracledb.connect(
@@ -42,23 +42,19 @@ pontos = {}
 def limpar_tela():
     os.system("cls" if os.name == "nt" else "clear")
 
-# VALIDAÇÃO
 
+# VALIDAÇÃO
 def validar_email(email):
-    # Valida formato padrão de email
     padrao = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
     return bool(re.match(padrao, email))
 
 def validar_senha(senha):
-    # Mínimo 8 caracteres, pelo menos uma letra maiúscula, uma minúscula, um número e um caractere especial
     padrao = r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$'
     return bool(re.match(padrao, senha))
 
 def validar_cpf(cpf):
-    # Verifica se o CPF tem 11 dígitos numéricos
     return cpf.isdigit() and len(cpf) == 11
 
-# Validações
 def adicionar_pessoal(email, senha, cpf):
     if not validar_email(email):
         print(MSG_EMAIL_INVALIDO)
@@ -78,7 +74,7 @@ def adicionar_pessoal(email, senha, cpf):
         return
 
 
-# Conexão com o CRUD do Gerenciamento de Cadastro Pessoal
+# GERENCIAMENTO DE CADASTRO PESSOAL  
     conn = conectar_db()
     if conn:
         cursor = conn.cursor()
@@ -177,7 +173,7 @@ def remover_pessoal(email, senha):
     if conn:
         cursor = conn.cursor()
         try:
-            # Verificar se o e-mail existe no banco de dados
+            
             select_query = "SELECT * FROM T_USER WHERE email = :email"
             cursor.execute(select_query, {'email': email})
             user = cursor.fetchone()
@@ -187,8 +183,7 @@ def remover_pessoal(email, senha):
                 input("\nPressione Enter para voltar....")
                 return
 
-            # Verificar se a senha informada corresponde à senha do usuário encontrado
-            if user[1] != senha:  # Supondo que a senha esteja na segunda coluna (índice 1)
+            if user[1] != senha:  
                 print("Senha incorreta!")
                 return
 
@@ -254,7 +249,7 @@ def resgatar_pontos(email, pontos_resgatar):
     input("\nPressione Enter para voltar ao menu...")
 
 
-# RELATAR PROBLEMAS
+# AVALIAR SISTEMA 
 def relatar_problema(descricao_problema, email):
     if not validar_email(email):
         print("E-mail inválido! Não é possível relatar o avaliação.")
@@ -295,6 +290,8 @@ def exportar_dados_json():
 
 
 # FUNÇÕES DE ENTRADA
+
+#pessoal
 def adicionar_cadastro_entrada():
     limpar_tela()
     print("Cadastro de novo usuário")
@@ -317,7 +314,7 @@ def remover_cadastro_entrada():
     remover_pessoal(email, senha)
 
 
-# Cadastro de Pontos
+# pontos
 acoes_disponiveis = {
     "plantou uma arvore": 10,
     "coletou lixo": 5,
@@ -402,6 +399,7 @@ def resgatar_pontos_entrada():
             print("Entrada inválida. Por favor, insira um número válido.")
     resgatar_pontos(email, pontos_resgatar)
 
+#avaliar sistema 
 def relatar_problema_entrada():
     limpar_tela()
     print("=== Avaliar Sistema ===")
@@ -498,7 +496,7 @@ def menu_pontos():
             input("\nPressione Enter...")
 
 
-# MENU DE PROBLEMAS
+# menu de avaliação
 def menu_problemas():
     while True:
         limpar_tela()
